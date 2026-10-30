@@ -1,0 +1,52 @@
+name: CI - Lint, Format & Evaluation Suite
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    name: Lint, Typecheck & Run Pytest Suite
+    runs-on: ubuntu-latest
+
+    env:
+      APP_ENV: test
+      GOOGLE_CLOUD_PROJECT: test-retail-returns-project
+      GOOGLE_CLOUD_LOCATION: global
+      GOOGLE_GENAI_USE_VERTEXAI: "True"
+      LOG_LEVEL: INFO
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python 3.12
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --dev --extra lint
+
+      - name: Run Ruff Linter
+        run: uv run ruff check .
+
+      - name: Run Ruff Formatter Check
+        run: uv run ruff format . --check
+
+      - name: Run Spellcheck (codespell)
+        run: uv run codespell
+
+      - name: Run Static Type Checker (ty)
+        run: uv run ty check
+
+      - name: Run Automated Evaluation & Unit Test Suite
+        run: uv run pytest tests/ -v
